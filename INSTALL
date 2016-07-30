@@ -1,0 +1,41 @@
+php extention method
+NOTICE: if there is any better method, modify(or append) this readme
+/*
+ *in this method , first to generate *.so(eg. proto.so) (Makefile file put on ./url_attribute_table/Makefile)
+ *and then, our php extention is based on protobuf shared library
+ *last archive protobuf shared lib into phpextention shared library
+ */
+
+mainly produce steps as below::
+
+step 1: enter dir url_attribute_table and make
+	generate lib(include .so and .a) and src(include *.pb.h and *.pb.cc)
+
+step 2: enter $PHP/ext ($PHP is setup dir of php)
+	run ./ext_skel --extname=get_mem_protobuf
+	and produce get_mem_protobuf directory in ./
+	and structure of get_mem_protobuf like below:
+		get_mem_protobuf.c
+		get_mem_protobuf.php
+		php_get_mem_protobuf.h
+		config.m4
+
+step 3: modify config.m4(such as the modole in ./get_mem_protobuf/config.m4)
+
+step 4: vim php_get_mem_protobuf.h and add function proto_decode declare
+
+step 5: vim php_get_mem_protobuf.cc and add function proto_decode and modify entry function with proto_decode
+
+step 6: execute phpize
+
+step 7: ./configure
+
+step 8: make
+
+step 9: *.so produced in modules directory
+
+
+others: put *.so to php.ini extention
+
+
+try and use your extention

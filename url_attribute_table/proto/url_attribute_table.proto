@@ -1,0 +1,113 @@
+package cloud_search.messages;
+
+option java_package = "cloud_search.messages"; 
+option java_outer_classname = "PageAttributesProbuf"; 
+
+message IntScalarItem {
+	required uint32 id  = 1; // field id
+	required sint64 val = 2 [ default = 0 ]; // scalar value
+}
+message IntVectorItem {
+	required uint32 id  = 1; // field id
+	repeated sint64 vec = 2; // vector of values
+}
+message DblScalarItem {
+	required uint32 id  = 1; // field id
+	required double val = 2 [ default = 0 ]; // scalar value
+}
+message DblVectorItem {
+	required uint32 id  = 1; // field id
+	repeated double vec = 2; // vector of values
+}
+message StrScalarItem {
+	required uint32 id  = 1; // field id
+	required bytes  val = 2; // scalar value
+}
+message StrVectorItem {
+	required uint32 id  = 1; // field id
+	repeated bytes  vec = 2; // vector of values
+}
+message PageAttributes {
+	repeated IntScalarItem int_val = 1; // map<id,        sint64  >
+	repeated IntVectorItem int_vec = 2; // map<id, vector<sint64> >
+	repeated DblScalarItem dbl_val = 3; // map<id,        double  >
+	repeated DblVectorItem dbl_vec = 4; // map<id, vector<double> >
+	repeated StrScalarItem str_val = 5; // map<id,        bytes   >
+	repeated StrVectorItem str_vec = 6; // map<id, vector<bytes > >
+	required sint64 ctime = 7 [ default = 0 ];
+	required sint64 mtime = 8 [ default = 0 ];
+}
+
+message ScalarUpdateData {
+	repeated IntScalarItem int_val = 1; // map<id,        sint64  >
+	repeated IntVectorItem int_vec = 2; // map<id, vector<sint64> >
+	repeated DblScalarItem dbl_val = 3; // map<id,        double  >
+	repeated DblVectorItem dbl_vec = 4; // map<id, vector<double> >
+	repeated StrScalarItem str_val = 5; // map<id,        bytes   >
+	repeated StrVectorItem str_vec = 6; // map<id, vector<bytes > >
+}
+message VectorUpdateData {
+	repeated IntVectorItem int_vec = 1; // map<id, vector<sint64> >
+	repeated DblVectorItem dbl_vec = 2; // map<id, vector<double> >
+	repeated StrVectorItem str_vec = 3; // map<id, vector<bytes > >
+}
+message DeleteAttributesIds {
+	repeated uint32 int_val = 1;
+	repeated uint32 int_vec = 2;
+	repeated uint32 dbl_val = 3;
+	repeated uint32 dbl_vec = 4;
+	repeated uint32 str_val = 5;
+	repeated uint32 str_vec = 6;
+}
+
+message PageAttributesUpdate {
+	enum OpCode {
+		kDefault = 0;
+		kDelete  = 1; // delete by key
+		kReplace = 2; // replace whole PageAttributes
+		kManualDelete  = 3; // 人工删除
+		kManualReplace = 4; // 人工替换
+	}
+	required OpCode op = 1;
+	required bytes key = 2; // url as key
+	required sint64 mtime = 4;
+
+	//-----------------------------------------------
+	// Instruction Data
+	//   when op == kDefault, below are multiple instructions
+	//   instruction execute order is same as the declaration order below.
+	//   if instructions are contradict each other(multiple instructions on same field id), the latter will take effect.
+
+	// for XXScalarItem(Create new when id is not exists)
+	// When XX is bytes : storage_str_val[id].append(instruction_str_val[id])
+	// When XX is number: storage_num_val[id]   +=   instruction_num_val[id] // num is 'int' or 'dbl'
+	//
+	// for XXVectorItem(Create new when id is not exists) 
+	// if 'id' in in instruction_XX_vec, storage_XX_vec[id].size() == instruction_XX_vec[id].size() must hold
+	// When XX is bytes : storage_str_vec[id][i].append(instruction_str_vec[id][i])
+	// When XX is number: storage_num_vec[id][i]   +=   instruction_num_vec[id][i] // num is 'int' or 'dbl'
+	optional ScalarUpdateData scalar_add = 10;
+
+	// only for XXVectorItem(Create new when id is not exists) 
+	// storage_XX_vec[id].append(instruction_XX_vec[id])
+	optional VectorUpdateData vector_add = 11;
+
+	// storage_XX_vec[id] |= instruction_XX_vec[id]; '|=' is set_union
+	optional VectorUpdateData set_union = 12;
+
+	// storage_XX_vec[id] &= instruction_XX_vec[id]; '&=' is set_intersection
+	optional VectorUpdateData set_intersection = 13;
+
+	// '-=' is set_difference
+	optional VectorUpdateData set_delete = 14; // storage_XX_vec[id] -= instruction_XX_vec[id]
+	optional VectorUpdateData set_diff21 = 15; // storage_XX_vec[id]  = instruction_XX_vec[id] - storage_XX_vec[id]
+
+	// '^=' is set_symmetric_difference
+	// storage_XX_vec[id] ^= instruction_XX_vec[id]
+	optional VectorUpdateData set_symmetric_difference = 16;
+
+	optional ScalarUpdateData attr_replace = 17; // storage_xxx_val[id] = instruction_xxx_val[id]
+	optional DeleteAttributesIds attr_delete = 18;
+
+	optional ScalarUpdateData replace = 19;
+}
